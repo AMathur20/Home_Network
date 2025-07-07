@@ -71,6 +71,80 @@ Copy `.env.example` to `.env` and fill in your credentials. Key variables:
 | POLL_INTERVAL | Override polling interval in seconds |
 | ALERTS_EMAIL_TO / ALERTS_EMAIL_PASS | Email target + app password for Grafana alerts |
 
+### Configuration tips (`config/config.yaml` vs `.env`)
+Secrets such as passwords and API tokens belong in **.env** or your CI/Compose secret store. Structured runtime settings live in **config/config.yaml** and can be hot-reloaded.
+
+Examples:
+```yaml
+# config/config.yaml
+devices:
+  unifi:
+    controller: "https://192.168.1.1:8443"  # creds in env vars UNIFI_USER / UNIFI_PASS
+
+  mikrotik:
+    hosts:            # list all MikroTik routers/switches
+      - "192.168.1.2"
+      - "192.168.1.3"
+
+  erx:                # EdgeRouter-X via SNMP (example)
+    host: "192.168.1.10"
+    snmp_community: "public"
+
+polling:
+  interval: 60  # seconds
+```
+`MIKROTIK_USER`, `MIKROTIK_PASS`, `UNIFI_USER`, etc. are read from the environment at runtime; if they are set, they override any YAML values.
+
+---
+
+## Device-side Setup & Best Practices
+Ensure each network device allows API/SNMP access from the Poller container and use *read-only* credentials wherever possible.
+
+### UniFi Controller (UDM/Cloud-Key/UniFi Network)
+1. **Create a local "Read Only" Role:**
+   • Settings → Users → Roles → Add Role → select *Read Only* privileges.
+2. **Add a Service User:**
+   • Settings → Users → Local Users → Add User → assign the read-only role created above.
+3. **API Reachability:**
+   • Controller must be reachable at the `UNIFI_CONTROLLER` URL (default `https://<ip>:8443`).
+   • If using self-signed HTTPS, import the CA or add `?strict=false` to the URL.
+4. **Firewall:** open 8443/TCP to the Docker host only.
+
+### MikroTik Router / Switch
+1. **Enable API Service:**
+   ```shell
+   /ip service enable api
+   ```
+2. **Create read-only account:**
+   ```shell
+   /user group add name=ro policy=read,api,!local,!telnet
+   /user add name=poller group=ro password=STRONGPASS
+   ```
+3. **LLDP & Bridge Neighbor Discovery (for topology):**
+   ```shell
+   /ip neighbor discovery-settings set discover-interface-list=LAN
+   /interface lldp set all transmit-enabled=yes receive-enabled=yes
+   ```
+4. Restrict API access in */ip firewall filter* to the poller host IP.
+
+### EdgeRouter X (ER-X)
+Depending on how you collect stats:
+*SNMP (recommended):*
+```bash
+set service snmp community public
+set service snmp listen-address 0.0.0.0
+commit; save
+```
+Create a readonly OS user if using `ubnt-api`:
+```bash
+add system login user poller authentication plaintext-password STRONGPASS
+set system login user poller level operator
+commit; save
+```
+Restrict SNMP/API firewall rules to the poller host.
+
+---
+
 ## Setup
 
 ### Quick-start on a fresh Ubuntu 22.04 server
