@@ -112,6 +112,11 @@ UNIFI_PASS=supersecret
 MIKROTIK_USER=poller
 MIKROTIK_PASS=supersecret
 
+# EdgeRouter X (optional)
+ERX_USER=poller
+ERX_PASS=supersecret
+ERX_SNMP_COMMUNITY=public
+
 # Grafana alert e-mail
 ALERTS_EMAIL_TO=you@example.com
 ALERTS_EMAIL_PASS=app_password
@@ -210,6 +215,7 @@ nano config/config.yaml  # edit IPs, polling interval, labels, etc.
 # 6) Build and start the stack
 docker compose up -d --build
 ```
+This single command builds the poller image and starts **InfluxDB**, **Grafana**, and the poller in their own containers—no separate installation steps are required on the VM. Grafana is automatically provisioned with dashboards and data sources, and InfluxDB is initialised with the bucket/org you specify in `.env`.
 
 Services:
 - Grafana → <http://<server_ip>:3000> (user/pass `admin`/`admin`)
