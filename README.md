@@ -1,6 +1,6 @@
 # Home Network Monitoring and Visualization
 
-[![CI](https://github.com/Anks329/home_network_monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/Anks329/home_network_monitor/actions/workflows/ci.yml)
+[![CI](https://github.com/AMathur20/Home_Network/actions/workflows/ci.yml/badge.svg)](https://github.com/AMathur20/Home_Network/actions/workflows/ci.yml)
 
 This project monitors and visualizes a home network's wired and wireless devices using Grafana, InfluxDB, and Python.
 
@@ -97,8 +97,8 @@ sudo usermod -aG docker $USER
 
 # 4) Clone the repository (replace path as needed)
 mkdir -p ~/apps && cd ~/apps
-git clone https://github.com/Anks329/home_network_monitor.git
-cd home_network_monitor
+git clone https://github.com/AMathur20/Home_Network.git
+cd Home_Network
 
 # 5) Copy sample environment + config and edit secrets
 cp .env.example .env
