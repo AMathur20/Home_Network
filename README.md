@@ -95,6 +95,29 @@ polling:
 ```
 `MIKROTIK_USER`, `MIKROTIK_PASS`, `UNIFI_USER`, etc. are read from the environment at runtime; if they are set, they override any YAML values.
 
+### Example `.env`
+```env
+# InfluxDB
+INFLUX_URL=http://influxdb:8086
+INFLUX_ORG=home-net
+INFLUX_BUCKET=network_metrics
+INFLUX_TOKEN=changeme
+
+# UniFi Controller
+UNIFI_CONTROLLER=https://192.168.1.1:8443
+UNIFI_USER=unifi_ro
+UNIFI_PASS=supersecret
+
+# MikroTik credentials (shared across hosts)
+MIKROTIK_USER=poller
+MIKROTIK_PASS=supersecret
+
+# Grafana alert e-mail
+ALERTS_EMAIL_TO=you@example.com
+ALERTS_EMAIL_PASS=app_password
+```
+
+
 ---
 
 ## Device-side Setup & Best Practices
@@ -108,7 +131,11 @@ Ensure each network device allows API/SNMP access from the Poller container and 
 3. **API Reachability:**
    • Controller must be reachable at the `UNIFI_CONTROLLER` URL (default `https://<ip>:8443`).
    • If using self-signed HTTPS, import the CA or add `?strict=false` to the URL.
-4. **Firewall:** open 8443/TCP to the Docker host only.
+4. **Firewall:** open 8443/TCP to the Docker host only. Example on Ubuntu controller:
+   ```bash
+   sudo ufw allow proto tcp from <docker_host_ip> to any port 8443 comment "Allow UniFi API from poller"
+   sudo ufw reload
+   ```
 
 ### MikroTik Router / Switch
 1. **Enable API Service:**
