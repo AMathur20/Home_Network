@@ -1,0 +1,9 @@
+requests
+aiohttp
+influxdb-client
+python-dotenv
+sqlite-utils
+fastapi
+uvicorn
+librouteros
+watchdog
