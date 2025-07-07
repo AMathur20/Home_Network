@@ -199,4 +199,4 @@ Pull requests are welcome! Please open an issue first to discuss major changes.
 Run `pre-commit run --all-files` (if configured) and ensure tests pass before pushing.
 
 ## License
-MIT © 2025 Your Name
+MIT © 2025 Ankur Mathur
