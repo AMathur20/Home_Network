@@ -1,25 +1,38 @@
-import requests
 import os
+import requests
 
-UNIFI_CONTROLLER = os.getenv("UNIFI_CONTROLLER", "https://192.168.1.1:8443")
-USERNAME = os.getenv("UNIFI_USER", "admin")
-PASSWORD = os.getenv("UNIFI_PASS", "password")
+
+
+
+
+def _env(key: str, default: str | None = None) -> str:
+    """Read env at call-time so changes made by config_loader take effect."""
+    return os.getenv(key, default) or default
+
+def _controller() -> str:
+    """Return UniFi controller base URL."""
+    return _env("UNIFI_CONTROLLER", "https://192.168.1.1:8443")
 
 def login():
+    controller = _controller()
+    username = _env("UNIFI_USER", "admin")
+    password = _env("UNIFI_PASS", "password")
+
     session = requests.Session()
     session.verify = False
     login_data = {
-        "username": USERNAME,
-        "password": PASSWORD
+        "username": username,
+        "password": password
     }
-    resp = session.post(f"{UNIFI_CONTROLLER}/api/login", json=login_data)
+    resp = session.post(f"{controller}/api/login", json=login_data)
     resp.raise_for_status()
     return session
 
 def poll_unifi():
+    controller = _controller()
     try:
         session = login()
-        clients_resp = session.get(f"{UNIFI_CONTROLLER}/api/s/default/stat/sta")
+        clients_resp = session.get(f"{controller}/api/s/default/stat/sta")
         clients = clients_resp.json().get("data", [])
         return [{
             "mac": c["mac"],
