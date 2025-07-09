@@ -1,6 +1,7 @@
 apiVersion: 1
 groups:
   - name: home-net-alerts
+    folder: Alerts
     interval: 1m
     rules:
       - uid: device-offline

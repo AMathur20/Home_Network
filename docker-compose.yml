@@ -20,18 +20,18 @@ services:
     ports:
       - "8086:8086"
 
-  influx-init:
-    image: influxdb:2.7
-    depends_on:
-      influxdb:
-        condition: service_healthy
-    volumes:
-      - ./influxdb/tasks:/tasks:ro
-    entrypoint: >
-      /bin/sh -c "influx task list --name downsample_bandwidth_15m --token $INFLUX_TOKEN || influx task create --file /tasks/bandwidth_downsample.flux --token $INFLUX_TOKEN; echo 'InfluxDB downsampling task ensured'"
-    environment:
-      - INFLUX_TOKEN=${INFLUX_TOKEN}
-      - INFLUXD_URL=http://influxdb:8086
+#  influx-init:
+#    image: influxdb:2.7
+#    depends_on:
+#      influxdb:
+#        condition: service_healthy
+#    volumes:
+#      - ./influxdb/tasks:/tasks:ro
+#    entrypoint: >
+#      /bin/sh -c "influx task list --name downsample_bandwidth_15m --token $INFLUX_TOKEN || influx task create --file /tasks/bandwidth_downsample.flux --token $INFLUX_TOKEN; echo 'InfluxDB downsampling task ensured'"
+#    environment:
+#      - INFLUX_TOKEN=${INFLUX_TOKEN}
+#      - INFLUXD_URL=http://influxdb:8086
 
   grafana:
     image: grafana/grafana:10.3.1
