@@ -6,4 +6,5 @@ sqlite-utils
 fastapi
 uvicorn
 librouteros
+PyYAML
 watchdog
