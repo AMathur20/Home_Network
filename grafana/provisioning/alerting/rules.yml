@@ -17,7 +17,7 @@ groups:
               resultFormat: time_series
           - refId: B
             relativeTimeRange:
-              from: 0
+              from: 300
               to: 0
             datasourceUid: builtin
             model:
