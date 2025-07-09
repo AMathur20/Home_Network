@@ -1,7 +1,7 @@
 import requests
 import os
 
-UNIFI_CONTROLLER = os.getenv("UNIFI_CONTROLLER", "https://192.168.1.1:8443")
+UNIFI_CONTROLLER = os.getenv("UNIFI_CONTROLLER", "https://192.168.102.4:8443")
 USERNAME = os.getenv("UNIFI_USER", "admin")
 PASSWORD = os.getenv("UNIFI_PASS", "password")
 
