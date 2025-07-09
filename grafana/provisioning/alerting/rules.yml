@@ -7,6 +7,7 @@ groups:
       - uid: device-offline
         title: "Device offline >5m"
         condition: C
+        for: 5m
         severity: critical
         data:
           - refId: A
@@ -42,6 +43,7 @@ groups:
       - uid: interface-saturation
         title: "Interface >90% for 3m"
         condition: B
+        for: 3m
         severity: critical
         data:
           - refId: A
