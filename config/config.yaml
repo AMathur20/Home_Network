@@ -1,0 +1,15 @@
+poller:
+  live: 5
+  history: 60
+
+devices:
+  - name: "mikrotik-core"
+    host: "192.168.88.1"
+    type: "mikrotik"
+    auth:
+      username: "admin"
+      password: "password123"
+    snmp:
+      version: "v2c"
+      community: "public"
+      port: 161
