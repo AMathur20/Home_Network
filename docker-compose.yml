@@ -1,0 +1,25 @@
+services:
+  hnm-core:
+    build: .
+    image: hnm-core:latest
+    container_name: hnm-core
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config:/app/config
+      - hnm-data:/app/data
+    restart: always
+
+  hnm-editor:
+    image: filebrowser/filebrowser:latest
+    container_name: hnm-editor
+    ports:
+      - "8081:80"
+    volumes:
+      - ./config:/srv
+    environment:
+      - FB_BASEURL=/config
+    restart: always
+
+volumes:
+  hnm-data:
