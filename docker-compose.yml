@@ -6,7 +6,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./config:/app/config
+      - ${HNM_CONFIG_DIR}:/app/config
       - hnm-data:/app/data
     restart: always
 
@@ -16,7 +16,7 @@ services:
     ports:
       - "8081:80"
     volumes:
-      - ./config:/srv
+      - ${HNM_CONFIG_DIR}:/srv
     environment:
       - FB_BASEURL=/config
     restart: always

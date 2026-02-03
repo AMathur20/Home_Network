@@ -29,24 +29,65 @@
 
 HNM v2 is designed to be deployed as a "Stack" in Portainer for easy management.
 
-### 1. Preparation
-Ensure you have a directory on your host to store configurations (e.g., `./hnm/config`).
+### 1. Preparation: Setting Up Host Storage
+
+Before deploying, you must create a directory on your Docker host to store the YAML configuration files. This ensures your settings (like device IPs and network topology) are persistent and reachable by both the HNM core and the FileBrowser sidecar.
+
+#### On Linux or Mac:
+1. Open your terminal on the Docker host.
+2. Create a configuration directory (e.g., in your home folder):
+   ```bash
+   mkdir -p ~/hnm/config
+   ```
+3. Set appropriate permissions (ensures the Docker container can write to this folder):
+   ```bash
+   chmod -R 755 ~/hnm/config
+   ```
+4. **Note the Absolute Path**: Run `pwd` inside that folder. You will need this path (e.g., `/home/user/hnm/config`) for the Portainer stack configuration.
+
+#### Manual File Creation (Optional):
+The integrated **FileBrowser** will allow you to create these files via the UI, but you can also pre-create an empty `config.yaml` to be ready:
+```bash
+touch ~/hnm/config/config.yaml
+```
 
 ### 2. Portainer Stack Setup
+
+> [!WARNING]
+> **Why did the build fail?** If you are using the Portainer **Web Editor**, the `build: .` command will fail because Portainer does not have access to your local source code. You have two options:
+
+#### Option A: Build Locally (Easiest for most)
+Run this command in your project root on your terminal **before** deploying in Portainer:
+```bash
+docker build -t hnm-core:latest .
+```
+Once the build is finished, you can use `image: hnm-core:latest` in your Portainer stack, and it will find the image you just built.
+
+#### Option B: Deploy via Git
+Instead of "Web editor", select **Repository** in Portainer and point it to your GitHub/GitLab URL. 
+
+**How to handle paths in Git mode:**
+- Portainer will clone the repo and use the `docker-compose.yml` inside it.
+- **Critical**: You still need to ensure the `volumes` in the `docker-compose.yml` point to your actual host paths. 
+- You can either:
+    1.  **Edit the file in your repo** to include your specific paths before pushing.
+    2.  **Use Portainer Environment Variables**: Use variables like `${HNM_CONFIG_DIR}` in the YAML and define them in the Portainer "Environment variables" section when creating the stack.
+
+### 3. Deployment
 1. Log in to your Portainer instance.
 2. Go to **Stacks** > **Add stack**.
 3. Name your stack (e.g., `hnm`).
-4. Select **Web editor** and paste the following configuration:
+4. Paste the following configuration (if using **Option A**):
 
 ```yaml
 services:
   hnm-core:
-    build: . # Or use image: ghcr.io/[user]/hnm-core:latest
+    image: hnm-core:latest 
     container_name: hnm-core
     ports:
       - "8080:8080"
     volumes:
-      - /path/to/your/config:/app/config
+      - ${HNM_CONFIG_DIR}:/app/config
       - hnm-data:/app/data
     environment:
       - HNM_CONFIG_PATH=/app/config/config.yaml
@@ -59,7 +100,7 @@ services:
     ports:
       - "8081:80"
     volumes:
-      - /path/to/your/config:/srv
+      - ${HNM_CONFIG_DIR}:/srv
     environment:
       - FB_BASEURL=/config
     restart: always
@@ -69,10 +110,10 @@ volumes:
 ```
 
 > [!IMPORTANT]
-> Change `/path/to/your/config` to the absolute path on your host where you want to store `config.yaml` and `topology.yaml`. HNM will create a `hnm.db` in the named volume `hnm-data`.
+> **Environment Variables**: When creating the stack in Portainer, you **must** define a variable named `HNM_CONFIG_DIR` and set it to your absolute host path (e.g., `/home/user/hnm/config`). This ensures your configuration is persistent and accessible to both services.
 
-### 3. Deployment
-Click **Deploy the stack**. Portainer will build (or pull) the images and start the containers.
+### 4. Click 'Deploy'
+Click **Deploy the stack**.
 
 ---
 
