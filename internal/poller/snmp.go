@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/AMathur20/Home_Network/internal/models"
+	"github.com/AMathur20/Home_Network/internal/snmphelper"
 	"github.com/gosnmp/gosnmp"
 )
 
@@ -51,7 +52,7 @@ func (p *SNMPPoller) Poll() ([]models.InterfaceMetric, error) {
 		fmt.Sscanf(pdu.Name, oidIfName+".%d", &index)
 		metrics[index] = &models.InterfaceMetric{
 			DeviceName:    p.config.Name,
-			InterfaceName: string(pdu.Value.([]byte)),
+			InterfaceName: snmphelper.PduToString(pdu.Value),
 			Timestamp:     timestamp,
 		}
 		return nil
@@ -65,7 +66,7 @@ func (p *SNMPPoller) Poll() ([]models.InterfaceMetric, error) {
 		index := 0
 		fmt.Sscanf(pdu.Name, oidIfOperStatus+".%d", &index)
 		if m, ok := metrics[index]; ok {
-			status := pdu.Value.(int)
+			status := snmphelper.PduToInt(pdu.Value)
 			if status == 1 {
 				m.Status = "up"
 			} else {
@@ -81,7 +82,7 @@ func (p *SNMPPoller) Poll() ([]models.InterfaceMetric, error) {
 		index := 0
 		fmt.Sscanf(pdu.Name, oidIfHCInOctets+".%d", &index)
 		if m, ok := metrics[index]; ok {
-			m.InOctets = gosnmp.ToBigInt(pdu.Value).Uint64()
+			m.InOctets = snmphelper.PduToUint64(pdu.Value)
 		}
 		return nil
 	})
@@ -95,7 +96,7 @@ func (p *SNMPPoller) Poll() ([]models.InterfaceMetric, error) {
 			index := 0
 			fmt.Sscanf(pdu.Name, oidIfHCOutOctets+".%d", &index)
 			if m, ok := metrics[index]; ok {
-				m.OutOctets = gosnmp.ToBigInt(pdu.Value).Uint64()
+				m.OutOctets = snmphelper.PduToUint64(pdu.Value)
 			}
 			return nil
 		})
@@ -105,7 +106,7 @@ func (p *SNMPPoller) Poll() ([]models.InterfaceMetric, error) {
 			index := 0
 			fmt.Sscanf(pdu.Name, oidIfInOctets+".%d", &index)
 			if m, ok := metrics[index]; ok {
-				m.InOctets = uint64(pdu.Value.(uint))
+				m.InOctets = uint64(snmphelper.PduToUint64(pdu.Value))
 			}
 			return nil
 		})
@@ -113,7 +114,7 @@ func (p *SNMPPoller) Poll() ([]models.InterfaceMetric, error) {
 			index := 0
 			fmt.Sscanf(pdu.Name, oidIfOutOctets+".%d", &index)
 			if m, ok := metrics[index]; ok {
-				m.OutOctets = uint64(pdu.Value.(uint))
+				m.OutOctets = uint64(snmphelper.PduToUint64(pdu.Value))
 			}
 			return nil
 		})

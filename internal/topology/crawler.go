@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/AMathur20/Home_Network/internal/models"
+	"github.com/AMathur20/Home_Network/internal/snmphelper"
 	"github.com/gosnmp/gosnmp"
 )
 
@@ -61,7 +62,7 @@ func (c *Crawler) discoverForDevice(dev models.DeviceConfig) ([]Link, error) {
 	err = params.BulkWalk(oidIfName, func(pdu gosnmp.SnmpPDU) error {
 		index := 0
 		fmt.Sscanf(pdu.Name, oidIfName+".%d", &index)
-		ifNames[index] = string(pdu.Value.([]byte))
+		ifNames[index] = snmphelper.PduToString(pdu.Value)
 		return nil
 	})
 	if err != nil {
@@ -84,14 +85,14 @@ func (c *Crawler) discoverForDevice(dev models.DeviceConfig) ([]Link, error) {
 			sourceIface = fmt.Sprintf("port-%d", localPortNum)
 		}
 
-		targetDevice := string(pdu.Value.([]byte))
+		targetDevice := snmphelper.PduToString(pdu.Value)
 
 		// Fetch the remote port ID for this specific entry
 		remotePortPath := fmt.Sprintf("%s.%d.%d.%d", oidLldpRemPortId, timeMark, localPortNum, remIndex)
 		result, err := params.Get([]string{remotePortPath})
 		targetIface := "unknown"
 		if err == nil && len(result.Variables) > 0 {
-			targetIface = string(result.Variables[0].Value.([]byte))
+			targetIface = snmphelper.PduToString(result.Variables[0].Value)
 		}
 
 		links = append(links, Link{
