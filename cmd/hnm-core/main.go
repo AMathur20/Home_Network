@@ -11,6 +11,9 @@ import (
 	"github.com/AMathur20/Home_Network/internal/poller"
 	"github.com/AMathur20/Home_Network/internal/storage"
 	"github.com/AMathur20/Home_Network/internal/topology"
+
+	"os/signal"
+	"syscall"
 )
 
 func main() {
@@ -62,7 +65,19 @@ func main() {
 	// 5. Initialize Polling Engine
 	engine := poller.NewPollingEngine(cfg, store, topo)
 
-	// 6. Watch Topology for Hot-Reload
+	// 6. Graceful Shutdown Setup
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		sig := <-stop
+		log.Printf("Received signal %v. Shutting down gracefully...", sig)
+		store.Close()
+		log.Println("Storage closed. Exiting.")
+		os.Exit(0)
+	}()
+
+	// 7. Watch Topology for Hot-Reload
 	topology.WatchTopology(topoPath, func() {
 		newTopo, err := topology.LoadTopology(topoPath)
 		if err != nil {
@@ -77,7 +92,7 @@ func main() {
 
 	// 8. Setup HTTP Server
 	handler := api.NewAPIHandler(topoPath, store)
-	
+
 	http.HandleFunc("/api/topology", handler.GetTopology)
 	http.HandleFunc("/api/metrics", handler.GetLiveMetrics)
 
