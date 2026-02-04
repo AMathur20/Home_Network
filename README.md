@@ -9,7 +9,7 @@
 - **Mobile Optimization**: Dedicated **Priority List** highlighting high-bandwidth and "Down" links for small screens.
 - **Auto-Discovery**: Automatic topology generation using SNMP LLDP-MIB.
 - **Precision Polling**: Delta-based throughput calculation for accurate bits-per-second reporting.
-- **Portainer Ready**: Easy deployment with Docker Compose and integrated configuration editor.
+- **Docker Native**: Built for seamless deployment on Ubuntu and Linux servers.
 
 ## 🛠 Technology Stack
 
@@ -25,104 +25,54 @@
 
 ---
 
-## 📦 Deployment on Portainer
+## 📦 Deployment Guide (Ubuntu / CLI)
 
-HNM v2 is designed to be deployed as a "Stack" in Portainer for easy management.
+Deploying HNM v2 on an Ubuntu server via the command line is the recommended approach for maximum stability and performance.
 
-### 1. Preparation: Setting Up Host Storage
-
-Before deploying, you must create a directory on your Docker host to store the YAML configuration files. This ensures your settings (like device IPs and network topology) are persistent and reachable by both the HNM core and the FileBrowser sidecar.
-
-#### On Linux or Mac:
-1. Open your terminal on the Docker host.
-2. Create a configuration directory (e.g., in your home folder):
-   ```bash
-   mkdir -p ~/hnm/config
-   ```
-3. Set appropriate permissions (ensures the Docker container can write to this folder):
-   ```bash
-   chmod -R 755 ~/hnm/config
-   ```
-4. **Note the Absolute Path**: Run `pwd` inside that folder. You will need this path (e.g., `/home/user/hnm/config`) for the Portainer stack configuration.
-
-#### Manual File Creation (Optional):
-The integrated **FileBrowser** will allow you to create these files via the UI, but you can also pre-create an empty `config.yaml` to be ready:
+### 1. Prerequisites (Ubuntu)
+Ensure Docker and Docker Compose are installed:
 ```bash
-touch ~/hnm/config/config.yaml
+sudo apt update
+sudo apt install docker.io docker-compose -y
+sudo usermod -aG docker $USER
+# Log out and log back in for group changes to take effect
 ```
 
-### 2. Portainer Stack Setup
-
-> [!WARNING]
-> **Why did the build fail?** If you are using the Portainer **Web Editor**, the `build: .` command will fail because Portainer does not have access to your local source code. You have two options:
-
-#### Option A: Build Locally (Easiest for most)
-Run this command in your project root on your terminal **before** deploying in Portainer:
+### 2. Prepare Host Storage
+Create a dedicated folder on your host to store configurations and data.
 ```bash
-docker build -t hnm-core:latest .
-```
-Once the build is finished, you can use `image: hnm-core:latest` in your Portainer stack, and it will find the image you just built.
+# Create config directory
+mkdir -p ~/hnm/config
 
-#### Option B: Deploy via Git
-Instead of "Web editor", select **Repository** in Portainer and point it to your GitHub/GitLab URL. 
-
-**How to handle paths in Git mode:**
-- Portainer will clone the repo and use the `docker-compose.yml` inside it.
-- **Critical**: You still need to ensure the `volumes` in the `docker-compose.yml` point to your actual host paths. 
-- You can either:
-    1.  **Edit the file in your repo** to include your specific paths before pushing.
-    2.  **Use Portainer Environment Variables**: Use variables like `${HNM_CONFIG_DIR}` in the YAML and define them in the Portainer "Environment variables" section when creating the stack.
-
-### 3. Deployment
-1. Log in to your Portainer instance.
-2. Go to **Stacks** > **Add stack**.
-3. Name your stack (e.g., `hnm`).
-4. Paste the following configuration (if using **Option A**):
-
-```yaml
-services:
-  hnm-core:
-    image: hnm-core:latest 
-    container_name: hnm-core
-    ports:
-      - "8080:8080"
-    volumes:
-      - ${HNM_CONFIG_DIR}:/app/config
-      - hnm-data:/app/data
-    environment:
-      - HNM_CONFIG_PATH=/app/config/config.yaml
-      - HNM_DB_PATH=/app/data/hnm.db
-    restart: always
-
-  hnm-editor:
-    image: filebrowser/filebrowser:latest
-    container_name: hnm-editor
-    ports:
-      - "8081:80"
-    volumes:
-      - ${HNM_CONFIG_DIR}:/srv
-    environment:
-      - FB_BASEURL=/config
-    restart: always
-
-volumes:
-  hnm-data:
+# Set ownership (ensures Docker can write metrics/logs)
+sudo chown -R $USER:$USER ~/hnm
 ```
 
-> [!IMPORTANT]
-> **Environment Variables**: When creating the stack in Portainer, you **must** define a variable named `HNM_CONFIG_DIR` and set it to your absolute host path (e.g., `/home/user/hnm/config`). This ensures your configuration is persistent and accessible to both services.
+### 3. Configure the Environment
+HNM uses a `.env` file to manage paths without hardcoding them into the configuration. Create a file named `.env` in the project root:
+```bash
+echo "HNM_CONFIG_DIR=$HOME/hnm/config" > .env
+```
 
-### 4. Click 'Deploy'
-Click **Deploy the stack**.
+### 4. Build and Launch
+Run the following command from the project root:
+```bash
+# Build the images and start services in detached mode
+docker-compose up -d --build
+```
+
+### 5. Access the Dashboard
+- **HNM Dashboard**: `http://<your-server-ip>:8080`
+- **Config Editor**: `http://<your-server-ip>:8081`
 
 ---
 
 ## ⚙️ Configuration
 
 ### Initial Setup
-1. Access the **Config Editor** at `http://[YOUR-IP]:8081`.
-2. Create or upload your `config.yaml` in the root of the file browser.
-3. Example `config.yaml`:
+1. Open the **Config Editor** at `http://<server-ip>:8081`.
+2. Create or upload your `config.yaml`.
+3. **Example `config.yaml`**:
    ```yaml
    poller:
      live: 5
@@ -136,10 +86,22 @@ Click **Deploy the stack**.
          community: "public"
          port: 161
    ```
-4. Restart the `hnm-core` container in Portainer to apply the changes.
+4. Restart the poller: `docker-compose restart hnm-core`
 
 ### Topology
-HNM will automatically attempt to crawl your network via LLDP on the first boot. You can manually override or correct links by editing `topology.yaml` via the Config Editor. The dashboard will hot-reload automatically when you save changes.
+HNM will automatically attempt to crawl your network via LLDP on the first boot. You can manually override or correct links by editing `topology.yaml` via the Config Editor.
+
+---
+
+## ⛵ Alternative: Deployment on Portainer
+
+If you prefer using Portainer:
+1. Go to **Stacks** > **Add stack**.
+2. Select **Repository** (point to your Git URL).
+3. In **Environment variables**, add:
+   - `HNM_CONFIG_DIR`: `/your/host/path/to/config`
+4. Click **Deploy the stack**.
 
 ## 🤝 License
-MIT
+
+Apache 2.0
