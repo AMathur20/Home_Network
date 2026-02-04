@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/AMathur20/Home_Network/internal/models"
 	"github.com/AMathur20/Home_Network/internal/storage"
 	"github.com/AMathur20/Home_Network/internal/topology"
 )
@@ -35,6 +36,9 @@ func (h *APIHandler) GetLiveMetrics(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	if metrics == nil {
+		metrics = []models.InterfaceMetric{}
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(metrics)
