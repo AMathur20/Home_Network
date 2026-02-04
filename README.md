@@ -6,9 +6,8 @@
 
 - **"Dark NOC" Dashboard**: Premium React-based UI with interactive D3 topology maps.
 - **Link Classification**: Automatic detection of 10G, 1G, and Wireless links based on SNMP data.
-- **Mobile Optimization**: Dedicated **Priority List** highlighting high-bandwidth and "Down" links for small screens.
-- **Auto-Discovery**: Automatic topology generation using SNMP LLDP-MIB.
-- **Precision Polling**: Delta-based throughput calculation for accurate bits-per-second reporting.
+- **Real-Time & Historical Stats**: Precision polling for live bandwidth pulse and DuckDB storage for historical metrics.
+- **Auto-Discovery**: Fully functional topology generation using SNMP LLDP-MIB.
 - **Docker Native**: Built for seamless deployment on Ubuntu and Linux servers.
 
 ## 🛠 Technology Stack
@@ -65,6 +64,12 @@ docker-compose up -d --build
 - **HNM Dashboard**: `http://<your-server-ip>:8080`
 - **Config Editor**: `http://<your-server-ip>:8081`
 
+### API Reference
+HNM exposes a REST API for integration with other tools:
+- `GET /api/topology`: Returns the current network map.
+- `GET /api/metrics/live`: Returns the latest bandwidth and status for all interfaces.
+- `GET /api/metrics/history?device=...&interface=...`: Returns time-series history for a specific link.
+
 ---
 
 ## ⚙️ Configuration
@@ -89,7 +94,7 @@ docker-compose up -d --build
 4. Restart the poller: `docker-compose restart hnm-core`
 
 ### Topology
-HNM will automatically attempt to crawl your network via LLDP on the first boot. You can manually override or correct links by editing `topology.yaml` via the Config Editor.
+On first boot, if no `topology.yaml` exists, HNM will automatically perform a deep SNMP walk via LLDP to discover neighbor relationships. You can manually refine or override these links anytime via the Config Editor.
 
 ---
 

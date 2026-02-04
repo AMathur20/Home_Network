@@ -9,17 +9,22 @@ const PriorityList = () => {
         const fetchMetrics = async () => {
             try {
                 const response = await axios.get('/api/metrics/live');
-                // For demonstration, since the backend API is still partial
-                // we will mock a few "hot" links if the response is just a status ok
-                if (response.data.status === 'ok') {
-                    setMetrics([
-                        { id: 1, device: 'mikrotik-core', interface: 'sfp-sfpplus1', speed: '450 Mbps', direction: 'up', status: 'up' },
-                        { id: 2, device: 'mikrotik-core', interface: 'ether2', speed: '12 Mbps', direction: 'down', status: 'up' },
-                        { id: 3, device: 'living-room-sw', interface: 'port5', speed: '0 bps', direction: 'none', status: 'down' },
-                    ]);
-                } else {
-                    setMetrics(response.data);
-                }
+                const data = response.data || [];
+
+                // Sort by speed desc and limit to top 10
+                const processed = data
+                    .sort((a, b) => (b.InSpeed + b.OutSpeed) - (a.InSpeed + a.OutSpeed))
+                    .slice(0, 10)
+                    .map((m, i) => ({
+                        id: i,
+                        device: m.DeviceName,
+                        interface: m.InterfaceName,
+                        speed: `${((m.InSpeed + m.OutSpeed) / 1000000).toFixed(1)} Mbps`,
+                        direction: m.InSpeed > m.OutSpeed ? 'down' : 'up',
+                        status: m.Status
+                    }));
+
+                setMetrics(processed);
             } catch (err) {
                 console.error("Failed to fetch metrics:", err);
             }

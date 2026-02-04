@@ -31,8 +31,28 @@ func (h *APIHandler) GetTopology(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *APIHandler) GetLiveMetrics(w http.ResponseWriter, r *http.Request) {
-	// Simple placeholder for live metrics retrieval from DuckDB
-	// In a full implementation, we'd query the latest metrics per device/interface
+	metrics, err := h.storage.GetLatestMetrics()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok", "message": "Metrics retrieval not yet implemented"})
+	json.NewEncoder(w).Encode(metrics)
+}
+
+func (h *APIHandler) GetMetricHistory(w http.ResponseWriter, r *http.Request) {
+	device := r.URL.Query().Get("device")
+	iface := r.URL.Query().Get("interface")
+	if device == "" || iface == "" {
+		http.Error(w, "device and interface parameters are required", http.StatusBadRequest)
+		return
+	}
+
+	metrics, err := h.storage.GetMetricHistory(device, iface, 100) // Default to last 100
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(metrics)
 }

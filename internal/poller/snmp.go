@@ -1,11 +1,21 @@
 package poller
 
 import (
+	"fmt"
 	"log"
 	"time"
 
 	"github.com/AMathur20/Home_Network/internal/models"
 	"github.com/gosnmp/gosnmp"
+)
+
+const (
+	oidIfName        = ".1.3.6.1.2.1.31.1.1.1.1"
+	oidIfHCInOctets  = ".1.3.6.1.2.1.31.1.1.1.6"
+	oidIfHCOutOctets = ".1.3.6.1.2.1.31.1.1.1.10"
+	oidIfInOctets    = ".1.3.6.1.2.1.2.2.1.10"
+	oidIfOutOctets   = ".1.3.6.1.2.1.2.2.1.16"
+	oidIfOperStatus  = ".1.3.6.1.2.1.2.2.1.8"
 )
 
 type SNMPPoller struct {
@@ -32,39 +42,87 @@ func (p *SNMPPoller) Poll() ([]models.InterfaceMetric, error) {
 	}
 	defer params.Conn.Close()
 
-	// In a real implementation, we would BulkWalk these.
-	// For this refinement, let's fetch a few key interfaces or mock the names for classification demo.
-
-	metrics := make([]models.InterfaceMetric, 0)
 	timestamp := time.Now()
+	metrics := make(map[int]*models.InterfaceMetric)
 
-	log.Printf("Polling SNMP for device: %s", p.config.Name)
-
-	// Simulated interfaces for demonstration of the classification logic
-	interfaces := []struct {
-		name  string
-		descr string
-	}{
-		{"ether1", "1G Copper"},
-		{"sfp-sfpplus1", "10G Fiber Uplink"},
-		{"wlan1", "2.4GHz Wi-Fi"},
-	}
-
-	for _, iface := range interfaces {
-		// In a real crawl, we'd get these from SNMP Walk
-		metrics = append(metrics, models.InterfaceMetric{
+	// 1. Fetch Interface Names
+	err = params.BulkWalk(oidIfName, func(pdu gosnmp.SnmpPDU) error {
+		index := 0
+		fmt.Sscanf(pdu.Name, oidIfName+".%d", &index)
+		metrics[index] = &models.InterfaceMetric{
 			DeviceName:    p.config.Name,
-			InterfaceName: iface.name,
+			InterfaceName: string(pdu.Value.([]byte)),
 			Timestamp:     timestamp,
-			InOctets:      1000, // Placeholder
-			OutOctets:     500,  // Placeholder
-			Status:        "up",
-		})
-
-		// Note: The classification is used by the topology crawler
-		// but we can also store the type in the metric if we extend the model.
-		// For now, the PRD requirement is about topology detection.
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to walk ifName: %v", err)
 	}
 
-	return metrics, nil
+	// 2. Fetch Operational Status
+	err = params.BulkWalk(oidIfOperStatus, func(pdu gosnmp.SnmpPDU) error {
+		index := 0
+		fmt.Sscanf(pdu.Name, oidIfOperStatus+".%d", &index)
+		if m, ok := metrics[index]; ok {
+			status := pdu.Value.(int)
+			if status == 1 {
+				m.Status = "up"
+			} else {
+				m.Status = "down"
+			}
+		}
+		return nil
+	})
+
+	// 3. Fetch Counters (Prefer 64-bit HC counters)
+	useHC := true
+	err = params.BulkWalk(oidIfHCInOctets, func(pdu gosnmp.SnmpPDU) error {
+		index := 0
+		fmt.Sscanf(pdu.Name, oidIfHCInOctets+".%d", &index)
+		if m, ok := metrics[index]; ok {
+			m.InOctets = gosnmp.ToBigInt(pdu.Value).Uint64()
+		}
+		return nil
+	})
+	if err != nil {
+		log.Printf("Device %s does not support ifHCInOctets, falling back to 32-bit", p.config.Name)
+		useHC = false
+	}
+
+	if useHC {
+		params.BulkWalk(oidIfHCOutOctets, func(pdu gosnmp.SnmpPDU) error {
+			index := 0
+			fmt.Sscanf(pdu.Name, oidIfHCOutOctets+".%d", &index)
+			if m, ok := metrics[index]; ok {
+				m.OutOctets = gosnmp.ToBigInt(pdu.Value).Uint64()
+			}
+			return nil
+		})
+	} else {
+		// Fallback to 32-bit counters
+		params.BulkWalk(oidIfInOctets, func(pdu gosnmp.SnmpPDU) error {
+			index := 0
+			fmt.Sscanf(pdu.Name, oidIfInOctets+".%d", &index)
+			if m, ok := metrics[index]; ok {
+				m.InOctets = uint64(pdu.Value.(uint))
+			}
+			return nil
+		})
+		params.BulkWalk(oidIfOutOctets, func(pdu gosnmp.SnmpPDU) error {
+			index := 0
+			fmt.Sscanf(pdu.Name, oidIfOutOctets+".%d", &index)
+			if m, ok := metrics[index]; ok {
+				m.OutOctets = uint64(pdu.Value.(uint))
+			}
+			return nil
+		})
+	}
+
+	result := make([]models.InterfaceMetric, 0, len(metrics))
+	for _, m := range metrics {
+		result = append(result, *m)
+	}
+
+	return result, nil
 }

@@ -50,6 +50,52 @@ func (s *DuckDBStorage) SaveMetric(m models.InterfaceMetric) error {
 	return err
 }
 
+func (s *DuckDBStorage) GetLatestMetrics() ([]models.InterfaceMetric, error) {
+	rows, err := s.db.Query(`
+		SELECT device_name, interface_name, timestamp, in_octets, out_octets, in_speed, out_speed, status
+		FROM interface_metrics
+		QUALIFY ROW_NUMBER() OVER(PARTITION BY device_name, interface_name ORDER BY timestamp DESC) = 1`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var metrics []models.InterfaceMetric
+	for rows.Next() {
+		var m models.InterfaceMetric
+		err := rows.Scan(&m.DeviceName, &m.InterfaceName, &m.Timestamp, &m.InOctets, &m.OutOctets, &m.InSpeed, &m.OutSpeed, &m.Status)
+		if err != nil {
+			return nil, err
+		}
+		metrics = append(metrics, m)
+	}
+	return metrics, nil
+}
+
+func (s *DuckDBStorage) GetMetricHistory(deviceName, interfaceName string, limit int) ([]models.InterfaceMetric, error) {
+	rows, err := s.db.Query(`
+		SELECT device_name, interface_name, timestamp, in_octets, out_octets, in_speed, out_speed, status
+		FROM interface_metrics
+		WHERE device_name = ? AND interface_name = ?
+		ORDER BY timestamp DESC
+		LIMIT ?`, deviceName, interfaceName, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var metrics []models.InterfaceMetric
+	for rows.Next() {
+		var m models.InterfaceMetric
+		err := rows.Scan(&m.DeviceName, &m.InterfaceName, &m.Timestamp, &m.InOctets, &m.OutOctets, &m.InSpeed, &m.OutSpeed, &m.Status)
+		if err != nil {
+			return nil, err
+		}
+		metrics = append(metrics, m)
+	}
+	return metrics, nil
+}
+
 func (s *DuckDBStorage) Close() error {
 	return s.db.Close()
 }

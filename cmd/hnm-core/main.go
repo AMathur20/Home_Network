@@ -60,7 +60,25 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load topology: %v", err)
 	}
-	log.Printf("Topology loaded with %d links", len(topo.Links))
+
+	// Trigger Auto-Discovery if topology is empty
+	if len(topo.Links) == 0 {
+		log.Println("Topology is empty. Running auto-discovery...")
+		crawler := topology.NewCrawler(cfg.Devices)
+		discoveredTopo, err := crawler.Discover()
+		if err != nil {
+			log.Printf("Auto-discovery failed: %v", err)
+		} else {
+			topo = discoveredTopo
+			if err := topology.SaveTopology(topoPath, topo); err != nil {
+				log.Printf("Failed to save discovered topology: %v", err)
+			} else {
+				log.Printf("Auto-discovery complete. Discovered %d links and saved to %s", len(topo.Links), topoPath)
+			}
+		}
+	} else {
+		log.Printf("Topology loaded with %d links", len(topo.Links))
+	}
 
 	// 5. Initialize Polling Engine
 	engine := poller.NewPollingEngine(cfg, store, topo)
@@ -94,7 +112,8 @@ func main() {
 	handler := api.NewAPIHandler(topoPath, store)
 
 	http.HandleFunc("/api/topology", handler.GetTopology)
-	http.HandleFunc("/api/metrics", handler.GetLiveMetrics)
+	http.HandleFunc("/api/metrics/live", handler.GetLiveMetrics)
+	http.HandleFunc("/api/metrics/history", handler.GetMetricHistory)
 
 	// Serve Static UI Files
 	fs := http.FileServer(http.Dir(uiPath))
