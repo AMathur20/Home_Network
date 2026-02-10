@@ -83,6 +83,7 @@ func (c *Crawler) discoverLldpForDevice(dev models.DeviceConfig) ([]Link, error)
 	if err != nil {
 		return nil, fmt.Errorf("failed to walk ifName: %v", err)
 	}
+	log.Printf("Found %d interfaces on %s", len(ifNames), dev.Name)
 
 	links := make([]Link, 0)
 
@@ -166,6 +167,7 @@ func (c *Crawler) discoverMndpForDevice(dev models.DeviceConfig) ([]Link, error)
 		return nil
 	})
 
+	log.Printf("Discovered %d MNDP links for %s", len(links), dev.Name)
 	return links, err
 }
 
