@@ -7,7 +7,7 @@
 - **"Dark NOC" Dashboard**: Premium React-based UI with interactive D3 topology maps.
 - **Link Classification**: Automatic detection of 10G, 1G, and Wireless links based on SNMP data.
 - **Real-Time & Historical Stats**: Precision polling for live bandwidth pulse and DuckDB storage for historical metrics.
-- **Auto-Discovery**: Fully functional topology generation using SNMP LLDP-MIB.
+- **Auto-Discovery**: Intelligent topology generation using SNMP **LLDP-MIB** and native **MikroTik MNDP**.
 - **Docker Native**: Built for seamless deployment on Ubuntu and Linux servers.
 
 ## 🛠 Technology Stack
@@ -94,7 +94,7 @@ HNM exposes a REST API for integration with other tools:
 4. Restart the poller: `docker-compose restart hnm-core`
 
 ### Topology
-On first boot, if no `topology.yaml` exists, HNM will automatically perform a deep SNMP walk via LLDP to discover neighbor relationships. You can manually refine or override these links anytime via the Config Editor.
+On first boot, if no `topology.yaml` exists, HNM will automatically perform a deep SNMP walk via **LLDP** and **MNDP** (for MikroTik/SwOS) to discover neighbor relationships. You can manually refine or override these links anytime via the Config Editor.
 
 ---
 
